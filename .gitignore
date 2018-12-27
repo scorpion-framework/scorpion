@@ -9,7 +9,7 @@
 *.dll
 *.userprefs
 *.selections.json
+*.properties
 .dub
 .scorpion
-scorpion
-*.properties
+/scorpion
