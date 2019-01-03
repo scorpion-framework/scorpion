@@ -226,13 +226,11 @@ void init(Router router, Config config, Database database) {
 	}
 }
 
-void registerModule(string module_)() {
-	mixin("static import " ~ module_ ~ ";");
-	foreach(immutable member ; __traits(allMembers, mixin(module_))) {
-		static if(__traits(getProtection, __traits(getMember, mixin(module_), member)) == "public") {
-			immutable full = module_ ~ "." ~ member;
-			static if(hasUDA!(mixin(full), Configuration)) {
-				mixin("alias T = " ~ full ~ ";");
+void registerModule(alias module_)() {
+	foreach(immutable member ; __traits(allMembers, module_)) {
+		static if(__traits(getProtection, __traits(getMember, module_, member)) == "public") {
+			alias T = __traits(getMember, module_, member);
+			static if(hasUDA!(T, Configuration)) {
 				T configuration = new T();
 				static if(is(T : LanguageConfiguration)) {
 					foreach(lang, data; configuration.loadLanguages()) {
@@ -243,17 +241,17 @@ void registerModule(string module_)() {
 					profilesConfigurations ~= configuration;
 				}
 			}
-			static if(hasUDA!(mixin(full), Entity)) {
-				entities ~= new EntityInfoImpl!(ExtendEntity!(mixin(full), getUDAs!(mixin(full), Entity)[0].name))(Profile.get(getUDAs!(mixin(full), Profile)));
+			static if(hasUDA!(T, Entity)) {
+				entities ~= new EntityInfoImpl!(ExtendEntity!(T, getUDAs!(T, Entity)[0].name))(Profile.get(getUDAs!(T, Profile)));
 			}
-			static if(hasUDA!(mixin(full), Component)) {
-				components ~= new ComponentInfoImpl!(mixin(full))();
+			static if(hasUDA!(T, Component)) {
+				components ~= new ComponentInfoImpl!(T)();
 			}
-			static if(hasUDA!(mixin(full), Service)) {
-				services ~= new ServiceInfoImpl!(DatabaseRepository!(mixin(full)))();
+			static if(hasUDA!(T, Service)) {
+				services ~= new ServiceInfoImpl!(DatabaseRepository!(T))();
 			}
-			static if(hasUDA!(mixin(full), Controller)) {
-				controllers ~= new ControllerInfoImpl!(mixin(full))(Profile.get(getUDAs!(mixin(full), Profile)));
+			static if(hasUDA!(T, Controller)) {
+				controllers ~= new ControllerInfoImpl!(T)(Profile.get(getUDAs!(T, Profile)));
 			}
 		}
 	}
