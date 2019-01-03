@@ -49,16 +49,9 @@ struct Config {
 	private static void loadImpl(ref Config config, string file) {
 		file ~= ".properties";
 		if(exists(file)) {
-			foreach(line ; split(cast(string)read(file), "\n")) {
-				immutable sep = line.indexOf("=");
-				if(sep != -1) {
-					immutable key = line[0..sep].strip;
-					if(key.length) {
-						config._values[key] = line[sep+1..$].strip;
-					}
-				}
-			}
-			auto profiles = "scorpion.profiles" in config._values;
+			auto values = parseProperties(cast(string)read(file));
+			foreach(key, value; values) config._values[key] = value;
+			auto profiles = "scorpion.profiles" in values;
 			if(profiles) {
 				foreach(profile ; split(*profiles, ",")) {
 					profile = profile.strip;
@@ -69,6 +62,20 @@ struct Config {
 		}
 	}
 
+}
+
+string[string] parseProperties(string data) {
+	string[string] ret;
+	foreach(line ; split(data, "\n")) {
+		immutable sep = line.indexOf("=");
+		if(sep != -1) {
+			immutable key = line[0..sep].strip;
+			if(key.length) {
+				ret[key] = line[sep+1..$].strip;
+			}
+		}
+	}
+	return ret;
 }
 
 auto Value(string key){ return ValueImpl!Object(key, null); }
@@ -87,7 +94,7 @@ enum Configuration;
 
 interface LanguageConfiguration {
 
-	string[string] loadFrom();
+	string[string] loadLanguages();
 
 }
 

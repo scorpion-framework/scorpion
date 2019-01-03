@@ -12,12 +12,15 @@ struct Controller {
 
 }
 
-enum Path;
-
 struct Route {
 
 	string method;
 	string[] path;
+
+	this(string method, string[] path...) {
+		this.method = method;
+		this.path = path;
+	}
 
 }
 
@@ -33,20 +36,16 @@ Route Put(string[] path...) {
 	return Route("PUT", path);
 }
 
+Route Patch(string[] path...) {
+	return Route("PATCH", path);
+}
+
 Route Delete(string[] path...) {
 	return Route("DELETE", path);
 }
 
-struct Code {
+enum Path;
 
-	this(uint status) {
-		this.status = status;
-	}
+struct Param { string param; }
 
-	this(Status status) {
-		this.status = status.code;
-	}
-
-	uint status;
-
-}
+enum Body;

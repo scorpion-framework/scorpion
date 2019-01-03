@@ -5,16 +5,16 @@ import std.string : split;
 
 import diet.html : compileHTMLDietFile;
 
-import lighttp.util : Request;
+import lighttp.util : ServerRequest;
 
 import scorpion.lang : LanguageManager, Lang;
 
 class Model {
 
-	private Request _request;
+	private ServerRequest _request;
 	private Lang _lang;
 
-	this(Request request, LanguageManager languageManager) {
+	this(ServerRequest request, LanguageManager languageManager) {
 		_request = request;
 		_lang = languageManager.get(languageManager.defaultLanguage);
 		auto ptr = "accept-language" in request.headers;
@@ -28,7 +28,7 @@ class Model {
 		}
 	}
 
-	@property Request request() {
+	@property ServerRequest request() {
 		return _request;
 	}
 

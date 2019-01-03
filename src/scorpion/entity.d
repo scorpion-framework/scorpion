@@ -1,37 +1,27 @@
 ﻿module scorpion.entity;
 
+static import shark.entity;
+
 struct Entity {
 
 	string name;
 
 }
 
-enum Id;
+class ExtendEntity(T, string table) : T, shark.entity.Entity {
 
-enum NotNull;
+	override string tableName() {
+		return table;
+	}
 
-enum AutoIncrement;
+	this() {}
 
-class Nullable(T) {
-
-	public T value;
-
-	alias value this;
-
-}
-
-alias Bool = Nullable!bool;
-
-alias Byte = Nullable!byte;
-
-alias Short = Nullable!short;
-
-alias Integer = Nullable!int;
-
-alias Long = Nullable!long;
-
-string prepareQuery(T)() {
-
-
+	this(T entity) {
+		foreach(immutable member ; __traits(allMembers, T)) {
+			static if(__traits(compiles, mixin(member)=mixin("entity." ~ member))) {
+				mixin(member) = mixin("entity." ~ member);
+			}
+		}
+	}
 
 }

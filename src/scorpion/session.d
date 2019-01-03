@@ -1,8 +1,9 @@
 ﻿module scorpion.session;
 
-import std.uuid : UUID, randomUUID;
+import std.string : split, indexOf, strip;
+import std.uuid : UUID, randomUUID, parseUUID, UUIDParsingException;
 
-import lighttp : Request, Response;
+import lighttp : ServerRequest, ServerResponse;
 
 private enum cookieName = "SCORPION_SESSION_ID";
 
@@ -10,9 +11,25 @@ private Session[UUID] _sessions;
 
 class Session {
 
-	public static Session get(Request request) {
-		auto cookies = "cookies" in request.headers;
-
+	public static Session get(ServerRequest request) {
+		auto cookies = "cookie" in request.headers;
+		if(cookies) {
+			foreach(cookie ; split(*cookies, ";")) {
+				immutable eq = cookie.indexOf("=");
+				if(eq > 0) {
+					immutable name = cookie[0..eq].strip;
+					if(name == cookieName) {
+						try {
+							auto ret = parseUUID(cookie[eq+1..$].strip) in _sessions;
+							if(ret is null) break;
+							return *ret;
+						} catch(UUIDParsingException) {
+							break;
+						}
+					}
+				}
+			}
+		}
 		return new Session();
 	}
 
@@ -26,7 +43,7 @@ class Session {
 		return _authentication;
 	}
 
-	public void login(Response response, Authentication authentication) {
+	public void login(ServerResponse response, Authentication authentication) {
 		UUID uuid = randomUUID();
 		response.headers["Set-Cookie"] = cookieName ~ "=" ~ uuid.toString() ~ "; Path=/";
 		_sessions[uuid] = this;
@@ -41,7 +58,7 @@ class Session {
 
 interface Authentication {
 
-	public @property long userId();
+	public @property uint userId();
 
 	public @property string username();
 
