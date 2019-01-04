@@ -10,24 +10,18 @@ import std.traits : hasUDA, getUDAs, isFunction, Parameters, ParameterIdentifier
 import lighttp.router : Router, routeInfo;
 import lighttp.util : StatusCodes, ServerRequest, ServerResponse;
 
-import scorpion.component : Component, Init;
-import scorpion.config : Config, ValueImpl, Configuration, LanguageConfiguration, ProfilesConfiguration;
-import scorpion.controller : Controller, Route, Get, Post, Put, Delete, Path, Param, Body;
+import scorpion.component : Component, Init, Value;
+import scorpion.config : Config, Configuration, LanguageConfiguration, ProfilesConfiguration;
+import scorpion.controller : Controller, Route, Path, Param, Body;
 import scorpion.entity : Entity, ExtendEntity;
 import scorpion.lang : LanguageManager;
-import scorpion.model : Model;
 import scorpion.profile : Profile;
 import scorpion.service : Service, DatabaseRepository;
 import scorpion.session : Session;
 import scorpion.validation : Validation, validateParam, validateBody;
+import scorpion.view : View;
 
 import shark : Database;
-
-private template Alias(alias T) {
-
-	alias T Alias;
-
-}
 
 private LanguageManager languageManager;
 
@@ -141,7 +135,7 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 							static if(is(typeof(uda) == Route) || is(typeof(uda()) == Route)) {
 								static if(is(typeof(controllerPath))) auto path = controllerPath ~ uda.path;
 								else auto path = uda.path;
-								alias F = Alias!(__traits(getMember, T, member));
+								alias F = __traits(getMember, T, member);
 								auto fun = mixin(generateFunction!F(member));
 								info("Routing ", uda.method, " /", path.join("/"), " to ", T.stringof, ".", member);
 								router.add(routeInfo(uda.method, path.join(`\/`)), fun);
@@ -151,9 +145,8 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 						static if(hasUDA!(__traits(getMember, T, member), Init)) {
 							initComponent(mixin(full), database);
 						}
-						static if(hasUDA!(__traits(getMember, T, member), ValueImpl)) {
-							immutable value = getUDAs!(__traits(getMember, T, member), ValueImpl)[0];
-							mixin(full) = config.get!(typeof(value.defaultValue))(value.key, value.defaultValue);
+						static if(hasUDA!(__traits(getMember, T, member), Value)) {
+							mixin(full) = config.get(getUDAs!(__traits(getMember, T, member), Value)[0].key, mixin(full));
 						}
 					}
 				}
@@ -166,17 +159,19 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 		string body1 = "response.status=StatusCodes.ok;Validation validation=new Validation();";
 		string body2;
 		string[Parameters!M.length] call;
+		bool validation = false;
 		foreach(i, param; Parameters!M) {
 			static if(is(param == ServerRequest)) call[i] = "request";
 			else static if(is(param == ServerResponse)) call[i] = "response";
-			else static if(is(param == Model)) {
-				body2 ~= "Model model=new Model(request,languageManager);";
-				call[i] = "model";
+			else static if(is(param == View)) {
+				body2 ~= "View view=View(request,response,languageManager);";
+				call[i] = "view";
 			} else static if(is(param == Session)) {
 				body2 ~= "Session session=Session.get(request);";
 				call[i] = "session";
 			} else static if(is(param == Validation)) {
 				call[i] = "validation";
+				validation = true;
 			} else static if(is(typeof(M) Params == __parameters)) {
 				immutable p = "Parameters!F[" ~ i.to!string ~ "] " ~ member ~ i.to!string;
 				call[i] = member ~ i.to!string;
@@ -187,6 +182,7 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 						static if(is(attr == Param)) enum name = ParameterIdentifierTuple!M[i];
 						else enum name = attr.param;
 						body1 ~= p ~ "=validateParam!(Parameters!F[" ~ i.to!string ~ "])(\"" ~ name ~ "\",request,response);";
+						body1 ~= "if(response.status.code==400){return;}";
 					} else static if(is(attr == Body)) {
 						body1 ~= p ~ "=validateBody!(Parameters!F[" ~ i.to!string ~ "])(request,response,validation);";
 					}

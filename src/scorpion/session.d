@@ -5,7 +5,7 @@ import std.uuid : UUID, randomUUID, parseUUID, UUIDParsingException;
 
 import lighttp : ServerRequest, ServerResponse;
 
-private enum cookieName = "SCORPION_SESSION_ID";
+private enum cookieName = "__scorpion_ssid";
 
 private Session[UUID] _sessions;
 

@@ -6,11 +6,19 @@ import std.string : split, strip, indexOf;
 
 private enum defaultConfiguration = import("default-configuration.properties");
 
+/**
+ * Stores the configuration key/values and the used profiles
+ * from the configuration files.
+ */
 struct Config {
 
 	private string[] _profiles;
 	private string[string] _values;
 
+	/**
+	 * Gets the active profiles, read from the scorpion.profiles
+	 * properties and from the `ProfilesConfiguration` configuration.
+	 */
 	public @property string[] profiles() {
 		return _profiles;
 	}
@@ -19,6 +27,9 @@ struct Config {
 		_profiles ~= profiles;
 	}
 
+	/**
+	 * Indicates whether a profile is active.
+	 */
 	public bool hasProfile(string profile) {
 		foreach(p ; _profiles) {
 			if(p == profile) return true;
@@ -26,6 +37,10 @@ struct Config {
 		return false;
 	}
 
+	/**
+	 * Indicates whether at least one of the profiles in the
+	 * given array is active.
+	 */
 	public bool hasProfile(string[] profiles...) {
 		foreach(profile ; profiles) {
 			if(hasProfile(profile)) return true;
@@ -33,6 +48,9 @@ struct Config {
 		return false;
 	}
 
+	/**
+	 * Gets a configuration value from its key.
+	 */
 	public T get(T)(string key, lazy T defaultValue) {
 		auto ptr = key in _values;
 		if(ptr) return to!T(*ptr);
@@ -78,28 +96,53 @@ string[string] parseProperties(string data) {
 	return ret;
 }
 
-auto Value(string key){ return ValueImpl!Object(key, null); }
-
-auto Value(T)(string key, T defaultValue){ return ValueImpl!T(key, defaultValue); }
-
-struct ValueImpl(T) {
-
-	string key;
-
-	T defaultValue;
-
-}
-
+/**
+ * Annotation for a configuration class. Does not take any argument.
+ * A configuration class should extend one or more of the configuration
+ * interfaces.
+ * Example:
+ * ---
+ * @Configuration
+ * class ExampleConfig : ProfilesConfig {
+ * 
+ *    override string[] defaultProfiles() {
+ *       return ["example"];
+ *    }
+ * 
+ * }
+ * ---
+ */
 enum Configuration;
 
+/**
+ * Configuration for the language files.
+ * Language files use the format `key=value`.
+ */
 interface LanguageConfiguration {
 
+	/**
+	 * Returns a map of the language files, alredy read.
+	 * Example:
+	 * ---
+	 * override string[string] loadLanguages() {
+	 *    return ["en": cast(string)read("res/lang/en.lang")];
+	 * }
+	 * ---
+	 */
 	string[string] loadLanguages();
 
 }
 
+/**
+ * Configuration for default profiles.
+ * This configuration adds the profiles in the configuration
+ * files the ones returned by `defaultProfiles`;
+ */
 interface ProfilesConfiguration {
 
+	/**
+	 * Gets the default profiles.
+	 */
 	string[] defaultProfiles();
 
 }

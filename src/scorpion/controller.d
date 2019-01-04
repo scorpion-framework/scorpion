@@ -2,6 +2,15 @@
 
 import lighttp.util : Status;
 
+/**
+ * Annotation for controllers.
+ * Example:
+ * ---
+ * @Controller
+ * @Controller("path")
+ * @Controller("more", "complex", "path")
+ * ---
+ */
 struct Controller {
 
 	string[] path;

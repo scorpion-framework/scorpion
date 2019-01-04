@@ -19,13 +19,12 @@ class ScorpionWelcomeConfiguration : LanguageConfiguration {
 @Controller
 class ScorpionWelcomeController {
 	
-	@Value("scorpion.example", "Welcome to Scorpion!")
-	string example;
+	@Value("scorpion.example")
+	string example = "Welcome to Scorpion!";
 	
 	@Get
-	getIndex(Response response, Model model) {
-		response.headers["Content-Type"] = "text/html";
-		response.body_ = model.compile!"scorpion-welcome.index.dt"(["example": example]);
+	getIndex(Response response, View view) {
+		view.compile!("scorpion-welcome.index.dt", example);
 	}
 	
 	@Get("number", "([0-9]*)")
