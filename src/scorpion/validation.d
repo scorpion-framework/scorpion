@@ -158,7 +158,7 @@ class Validation {
 
 T validateParam(T)(string param, ServerRequest request, ServerResponse response) {
 	auto values = request.url.queryParams[param];
-	static if(isArray!T) {
+	static if(isArray!T && !is(T : string)) {
 		T ret;
 		foreach(value ; values) {
 			try {

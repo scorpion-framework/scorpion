@@ -126,20 +126,33 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 	override void init(Router router, Config config, Database database) {
 		if(profiles.length == 0 || config.hasProfile(profiles)) {
 			T controller = new T();
-			static if(!__traits(compiles, getUDAs!(T, Controller)[0]())) auto controllerPath = getUDAs!(T, Controller)[0].path;
+			static if(!__traits(compiles, getUDAs!(T, Controller)[0]())) enum controllerPath = getUDAs!(T, Controller)[0].path;
 			foreach(immutable member ; __traits(allMembers, T)) {
 				static if(__traits(getProtection, __traits(getMember, T, member)) == "public") {
 					immutable full = "controller." ~ member;
 					static if(isFunction!(__traits(getMember, T, member))) {
-						foreach(immutable uda ; __traits(getAttributes, __traits(getMember, T, member))) {
-							static if(is(typeof(uda) == Route) || is(typeof(uda()) == Route)) {
-								static if(is(typeof(controllerPath))) auto path = controllerPath ~ uda.path;
-								else auto path = uda.path;
-								alias F = __traits(getMember, T, member);
-								auto fun = mixin(generateFunction!F(member));
-								info("Routing ", uda.method, " /", path.join("/"), " to ", T.stringof, ".", member);
-								router.add(routeInfo(uda.method, path.join(`\/`)), fun);
+						enum tests = {
+							string[] ret;
+							foreach(i, immutable uda; __traits(getAttributes, __traits(getMember, T, member))) {
+								static if(is(typeof(__traits(getMember, uda, "test")) == function)) {
+									static if(__traits(compiles, uda())) ret ~= "__traits(getAttributes, F)[" ~ i.to!string ~ "].init";
+									else ret ~= "__traits(getAttributes, F)[" ~ i.to!string ~ "]";
+								}
 							}
+							return ret;
+						}();
+						foreach(immutable uda ; getUDAs!(__traits(getMember, T, member), Route)) {
+							static if(__traits(compiles, { enum s=uda.path; })) {
+								static if(is(typeof(controllerPath))) enum path = controllerPath ~ uda.path;
+								else enum path = uda.path;
+							} else {
+								static if(is(typeof(controllerPath))) alias path = controllerPath;
+								else enum string[] path = [];
+							}
+							alias F = __traits(getMember, T, member);
+							auto fun = mixin(generateFunction!F(T.stringof, member, path.join(`\/`), tests));
+							router.add(routeInfo(uda.method, uda.hasBody, path.join(`\/`)), fun);
+							info("Routing ", uda.method, " /", path.join("/"), " to ", T.stringof, ".", member);
 						}
 					} else {
 						static if(hasUDA!(__traits(getMember, T, member), Init)) {
@@ -154,12 +167,16 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 		}
 	}
 
-	private static string generateFunction(alias M)(string member) {
+	private static string generateFunction(alias M)(string controller, string member, string path, string[] tests) {
 		string[] ret = ["ServerRequest request", "ServerResponse response"];
-		string body1 = "response.status=StatusCodes.ok;Validation validation=new Validation();";
+		string body1 = "response.headers[`X-Scorpion-Controller`]=`" ~ controller ~ "." ~ member ~ "`;response.headers[`X-Scorpion-Path`]=`" ~ path ~ "`;";
 		string body2;
 		string[Parameters!M.length] call;
 		bool validation = false;
+		foreach(test ; tests) {
+			body1 ~= "if(!" ~ test ~ ".test(request,response)){return;}";
+		}
+		body1 ~= "response.status=StatusCodes.ok;Validation validation=new Validation();";
 		foreach(i, param; Parameters!M) {
 			static if(is(param == ServerRequest)) call[i] = "request";
 			else static if(is(param == ServerResponse)) call[i] = "response";

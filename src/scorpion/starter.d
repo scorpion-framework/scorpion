@@ -43,8 +43,12 @@ void start(string[] args) {
 		database = getDatabase(config, type);
 		database.connect(config.get("scorpion.database.name", string.init), config.get("scorpion.database.user", "root"), config.get("scorpion.database.password", ""));
 	}
+
+	ServerOptions options;
+	options.name = "Scorpion/~master";
+	options.max = config.get("scorpion.upload.max", 2 ^^ 24); // 16 MB
 	
-	Server server = new Server("Scorpion");
+	Server server = new Server(options);
 	init(server.router, config, database);
 	server.host(ip, port);
 	server.run();

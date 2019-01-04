@@ -1,34 +1,22 @@
 ﻿module scorpion.session;
 
+import std.algorithm : canFind;
 import std.string : split, indexOf, strip;
 import std.uuid : UUID, randomUUID, parseUUID, UUIDParsingException;
 
-import lighttp : ServerRequest, ServerResponse;
+import lighttp : ServerRequest, ServerResponse, StatusCodes, Cookie;
 
-private enum cookieName = "__scorpion_ssid";
+private enum cookieName = "__scorpion_session_id";
 
 private Session[UUID] _sessions;
 
 class Session {
 
 	public static Session get(ServerRequest request) {
-		auto cookies = "cookie" in request.headers;
-		if(cookies) {
-			foreach(cookie ; split(*cookies, ";")) {
-				immutable eq = cookie.indexOf("=");
-				if(eq > 0) {
-					immutable name = cookie[0..eq].strip;
-					if(name == cookieName) {
-						try {
-							auto ret = parseUUID(cookie[eq+1..$].strip) in _sessions;
-							if(ret is null) break;
-							return *ret;
-						} catch(UUIDParsingException) {
-							break;
-						}
-					}
-				}
-			}
+		if(auto cookie = cookieName in request.cookies) {
+			try {
+				if(auto ret = parseUUID(idup(*cookie)) in _sessions) return *ret;
+			} catch(UUIDParsingException) {}
 		}
 		return new Session();
 	}
@@ -45,7 +33,10 @@ class Session {
 
 	public void login(ServerResponse response, Authentication authentication) {
 		UUID uuid = randomUUID();
-		response.headers["Set-Cookie"] = cookieName ~ "=" ~ uuid.toString() ~ "; Path=/";
+		Cookie cookie = Cookie(cookieName, uuid.toString());
+		cookie.maxAge = 3600; // 1 hour
+		cookie.path = "/";
+		response.add(cookie);
 		_sessions[uuid] = this;
 		_authentication = authentication;
 	}
@@ -73,5 +64,38 @@ struct Auth {
 	}
 
 	string[] roles;
+
+	bool test(ServerRequest request, ServerResponse response) {
+		Session session = Session.get(request);
+		if(session.loggedIn) {
+			if(roles.length == 0) return true;
+			else foreach(role ; roles) {
+				if(session.authentication.roles.canFind(role)) return true;
+			}
+		}
+		response.status = StatusCodes.unauthorized;
+		return false;
+	}
+
+}
+
+struct AuthRedirect {
+
+	private string location;
+	private Auth _auth;
+
+	this(string location, string[] roles...) {
+		this.location = location;
+		_auth = Auth(roles);
+	}
+
+	bool test(ServerRequest request, ServerResponse response) {
+		if(!_auth.test(request, response)) {
+			response.redirect(StatusCodes.temporaryRedirect, location);
+			return false;
+		} else {
+			return true;
+		}
+	}
 
 }

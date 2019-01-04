@@ -8,7 +8,7 @@ public import scorpion.controller : Controller, Get, Post, Put, Delete, Path, Pa
 public import scorpion.entity : Entity;
 public import scorpion.profile : Profile;
 public import scorpion.service : Service, Repository, Where, OrderBy, Limit;
-public import scorpion.session : Session, Authentication, Auth;
+public import scorpion.session : Session, Authentication, Auth, AuthRedirect;
 public import scorpion.validation : CustomValidation, NotEmpty, Min, Max, NotZero, Regex, Email, Optional, Validation;
 public import scorpion.view : View, compile;
 

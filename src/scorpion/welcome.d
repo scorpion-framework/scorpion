@@ -49,3 +49,56 @@ class ScorpionAssetsController {
 	}
 	
 }
+
+@Controller
+class TestController {
+	
+	@Auth
+	@Get("privet")
+	getAuth(Response response, Session session) {
+		response.body_ = "Welcome to the club, " ~ session.authentication.username;
+	}
+
+	@Auth("test")
+	@Get("privet2")
+	getAuth2(Response response, Session session) {
+		import std.string : join;
+		response.body_ = "You have a permission (" ~ session.authentication.roles.join(", ") ~ ")";
+	}
+
+	@Get("auth")
+	getAuthMe(Response response, Session session, @Param string username, @Param string[] roles) {
+		session.login(response, new A(username, roles));
+	}
+
+	@AuthRedirect("/")
+	@Get("redirect")
+	getRedirect(Response response) {
+		response.body_ = "HELLO";
+	}
+
+	class A : Authentication {
+
+		private string _username;
+		private string[] _roles;
+
+		this(string username, string[] roles) {
+			_username = username;
+			_roles = roles;
+		}
+
+		override uint userId() {
+			return 0;
+		}
+
+		override string username() {
+			return _username;
+		}
+
+		override string[] roles() {
+			return _roles;
+		}
+
+	}
+
+}
