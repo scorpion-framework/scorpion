@@ -10,5 +10,6 @@
 *.userprefs
 *.selections.json
 *.properties
+!/views/default-configuration.properties
 .dub
 .scorpion
