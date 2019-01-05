@@ -12,7 +12,7 @@ Scorpion is a web framework written in D built on top of [lighttp](https://githu
 
 To create a new Scorpion project you'll need a [D compiler](https://dlang.org/download.html) and [DUB](https://code.dlang.org/download) installed on your machine.
 
-To get started simply add `scoprion` as a dependency to your `dub.sdl` or `dub.json` and create controller.
+After creating a new project add `scorpion` as a dependency to your `dub.sdl` or `dub.json` and create a controller.
 
 `dub.sdl`
 ```sdl
@@ -43,7 +43,9 @@ Note that scorpion-boot will use the `.scorpion` folder to store build scipts, y
 
 Also, note that scoprion-boot does not work with [single-file packages](https://dub.pm/advanced_usage.html).
 
-## Futher reading
+## Learn the basics
 
 - [Configuration](docs/configuration.md)
 - [Controllers](docs/controller.md)
+
+## In depth
