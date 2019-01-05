@@ -17,7 +17,7 @@ import scorpion.controller : Controller, Route, Path, Param, Body;
 import scorpion.entity : Entity, ExtendEntity;
 import scorpion.lang : LanguageManager;
 import scorpion.profile : Profile;
-import scorpion.service : Service, DatabaseRepository;
+import scorpion.repository : Repository, DatabaseRepository;
 import scorpion.session : Session;
 import scorpion.validation : Validation, validateParam, validateBody;
 import scorpion.view : View;
@@ -265,10 +265,8 @@ void registerModule(alias module_)() {
 				entities ~= new EntityInfoImpl!(ExtendEntity!(T, getUDAs!(T, Entity)[0].name))(Profile.get(getUDAs!(T, Profile)));
 			}
 			static if(hasUDA!(T, Component)) {
-				components ~= new ComponentInfoImpl!(T)();
-			}
-			static if(hasUDA!(T, Service)) {
-				services ~= new ServiceInfoImpl!(DatabaseRepository!(T))();
+				static if(is(T : Repository!R, R)) services ~= new ServiceInfoImpl!(DatabaseRepository!T)();
+				else components ~= new ComponentInfoImpl!(T)();
 			}
 			static if(hasUDA!(T, Controller)) {
 				controllers ~= new ControllerInfoImpl!(T)(Profile.get(getUDAs!(T, Profile)));

@@ -36,6 +36,7 @@ class Session {
 		Cookie cookie = Cookie(cookieName, uuid.toString());
 		cookie.maxAge = 3600; // 1 hour
 		cookie.path = "/";
+		cookie.httpOnly = true;
 		response.add(cookie);
 		_sessions[uuid] = this;
 		_authentication = authentication;

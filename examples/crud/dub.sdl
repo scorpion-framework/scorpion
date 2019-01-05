@@ -1,0 +1,4 @@
+name "scorpion-crud"
+targetType "library"
+dependency "scorpion" path="../.."
+dependency "scorpion-boot" version="~master"
