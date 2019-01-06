@@ -49,3 +49,5 @@ Also, note that scoprion-boot does not work with [single-file packages](https://
 - [Controllers](docs/controller.md)
 
 ## In depth
+
+- [Creating a CRUD RESTful web service](examples/crud)

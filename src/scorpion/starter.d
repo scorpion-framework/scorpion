@@ -45,7 +45,7 @@ void start(string[] args) {
 	}
 
 	ServerOptions options;
-	options.name = "Scorpion/~master";
+	options.name = "Scorpion/0.1";
 	options.max = config.get("scorpion.upload.max", 2 ^^ 24); // 16 MB
 	
 	Server server = new Server(options);

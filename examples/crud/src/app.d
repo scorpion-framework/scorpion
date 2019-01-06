@@ -21,7 +21,7 @@ class Book {
 	
 	JSONValue[string] toJSON() {
 		return [
-			"bookId": JSONValue(bookId.value),
+			"id": JSONValue(bookId.value),
 			"title": JSONValue(title),
 			"author": JSONValue(author)
 		];

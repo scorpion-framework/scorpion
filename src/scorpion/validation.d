@@ -132,21 +132,51 @@ private bool emailValidator(string value) { return emailLength(value) == value.l
  */
 enum Optional;
 
+/**
+ * Validation utility class that contains errors.
+ */
 class Validation {
 
+	/**
+	 * Representation of an error.
+	 */
 	static struct Error {
 
+		/**
+		 * Field that the error is associated to.
+		 * If the error is not associated to any particular field
+		 * or it is associated to all of the them the value of this
+		 * member id `*`.
+		 */
 		string field;
+
+		/**
+		 * Error message. Can be an error code a sentence in a human-readable
+		 * language.
+		 * It's the last parameter is a custom validator.
+		 */
 		string message;
 
 	}
 
+	/**
+	 * Errors generated during the validation process or by the
+	 * controller.
+	 */
 	Error[] errors;
 
+	/**
+	 * Indicates whether the validation was successful. A successful
+	 * validation has no error.
+	 */
 	@property bool valid() pure nothrow @safe @nogc {
 		return errors.length == 0;
 	}
 
+	/**
+	 * If the validation failed sets the response's status to
+	 * `bad request` and prints the errors to its body.
+	 */
 	void apply(ServerResponse response) {
 		if(!valid) {
 			response.status = StatusCodes.badRequest;
