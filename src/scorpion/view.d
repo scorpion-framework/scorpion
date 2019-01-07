@@ -44,11 +44,13 @@ struct View {
 
 }
 
-void compile(string file, E...)(View view) {
-	view.response.body_ = compileImpl!(file, E)(view);
+deprecated("use render instead") alias compile = render;
+
+void render(string file, E...)(View view) {
+	view.response.body_ = renderImpl!(file, E)(view);
 }
 
-string compileImpl(string file, E...)(View view) {
+string renderImpl(string file, E...)(View view) {
 	Appender!string ret;
 	ServerRequest request = view.request;
 	Lang lang = view.lang;

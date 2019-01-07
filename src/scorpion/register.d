@@ -179,7 +179,7 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 private string generateFunction(alias M)(string controller, string member, string path, string[] tests) {
 	string[] ret = ["ServerRequest request", "ServerResponse response"];
 	string body1 = "response.headers[`X-Scorpion-Controller`]=`" ~ controller ~ "." ~ member ~ "`;response.headers[`X-Scorpion-Path`]=`" ~ path ~ "`;";
-	string body2;
+	string body2, body3;
 	string[Parameters!M.length] call;
 	bool validation = false;
 	foreach(test ; tests) {
@@ -215,7 +215,9 @@ private string generateFunction(alias M)(string controller, string member, strin
 			}
 		}
 	}
-	return "delegate(" ~ ret.join(",") ~ "){" ~ body1 ~ body2 ~ "controller." ~ member ~ "(" ~ join(cast(string[])call, ",") ~ ");validation.apply(response);}";
+	if(validation) body2 ~= "validation.apply(response);if(response.status.code==400){return;}";
+	else body3 = "validation.apply(response);";
+	return "delegate(" ~ ret.join(",") ~ "){" ~ body1 ~ body2 ~ "controller." ~ member ~ "(" ~ join(cast(string[])call, ",") ~ ");" ~ body3 ~ "}";
 }
 
 private void initComponent(T)(ref T value, Database database) {

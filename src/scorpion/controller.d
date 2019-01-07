@@ -1,6 +1,6 @@
 ﻿module scorpion.controller;
 
-import lighttp.util : Status;
+import lighttp.util : Status, ServerRequest, ServerResponse;
 
 /**
  * Attribute for controllers.
@@ -132,3 +132,29 @@ struct Param { string param; }
  * ---
  */
 enum Body;
+
+/**
+ * Attribute that marks a function as asynchronous. It means that the
+ * response is not sent to the client when the method returns but when
+ * the `send` function is called in the response.
+ * This attribute should be used when the route's method permorms an
+ * asynchrous action such as a client http call or using the database.
+ * Example:
+ * ---
+ * @Async
+ * @Get
+ * getAsync(Response response) {
+ *    new Client().connect("example.com").get("/").success((ClientResponse cresponse){
+ *       response.body = cresponse.body;
+ *       response.send();
+ *    });
+ * }
+ * ---
+ */
+struct Async {
+
+	bool test(ServerRequest request, ServerResponse response) {
+		response.ready = false;
+	}
+
+}
