@@ -3,7 +3,7 @@
 import std.conv : to, ConvException;
 import std.experimental.logger : traceImpl = trace;
 import std.regex : PhobosRegex = Regex, regex, matchFirst;
-import std.string : split, indexOf;
+import std.string : split, indexOf, replace;
 import std.traits : isArray, Parameters;
 import std.uri : decodeComponent, emailLength;
 
@@ -186,13 +186,17 @@ class Validation {
 
 }
 
+private string convertValue(string value) {
+	return decodeComponent(replace(value, "+", " "));
+}
+
 T validateParam(T)(string param, ServerRequest request, ServerResponse response) {
 	auto values = request.url.queryParams[param];
 	static if(isArray!T && !is(T : string)) {
 		T ret;
 		foreach(value ; values) {
 			try {
-				ret ~= to!(typeof(T.init[0]))(value);
+				ret ~= to!(typeof(T.init[0]))(convertValue(value));
 			} catch(ConvException) {
 				response.status = StatusCodes.badRequest;
 				return [];
@@ -202,7 +206,7 @@ T validateParam(T)(string param, ServerRequest request, ServerResponse response)
 	} else {
 		if(values.length) {
 			try {
-				return to!T(values[0]);
+				return to!T(convertValue(values[0]));
 			} catch(ConvException) {}
 		}
 		response.status = StatusCodes.badRequest;
@@ -236,7 +240,7 @@ T validateBody(T)(ServerRequest request, ServerResponse response, ref Validation
 				foreach(immutable member ; __traits(allMembers, T)) {
 					static if(__traits(compiles, mixin("ret." ~ member ~ "=typeof(ret." ~ member ~ ").init"))) {
 						if(key == member) {
-							immutable value = decodeComponent(keyValue[eq+1..$]);
+							immutable value = convertValue(keyValue[eq+1..$]);
 							try {
 								static if(isArray!(typeof(__traits(getMember, T, member)))) enum op = "~=";
 								else enum op = "=";

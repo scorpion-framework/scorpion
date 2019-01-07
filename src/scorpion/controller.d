@@ -72,6 +72,35 @@ Route Delete(string[] path...) {
 }
 
 /**
+ * Useful regular expressions for routing.
+ * Note that every regular expression in this enum is enclosed
+ * in a capturing group.
+ */
+enum Paths : string {
+
+	/**
+	 * Matches a number between 0 and 255.
+	 */
+	signedByte = `(1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])`,
+
+	/**
+	 * Matches a number between 0 and 999,999,999.
+	 */
+	integer = `([0-9]{1,9})`,
+
+	/**
+	 * Matches a number between 1 and 31.
+	 */
+	day = `(3[01]|[12][0-9]|[1-9])`,
+
+	/**
+	 * Matches a number between 1 and 12.
+	 */
+	month = `([1-9]|1[0-2])`,
+
+}
+
+/**
  * Attribute that indicates that the paramater is from a path's
  * regex capture.
  * The number of parameters annotated with `@Path` should correspond
@@ -155,6 +184,7 @@ struct Async {
 
 	bool test(ServerRequest request, ServerResponse response) {
 		response.ready = false;
+		return true;
 	}
 
 }

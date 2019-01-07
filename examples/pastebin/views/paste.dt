@@ -1,0 +1,7 @@
+doctype html
+html
+	head
+		title= paste.title
+	body
+		h1= paste.title
+		pre= paste.content

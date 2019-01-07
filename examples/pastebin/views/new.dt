@@ -1,0 +1,9 @@
+doctype html
+html
+	head
+		title New paste
+	body
+		form(method='POST', action='new')
+			input(name='title', placeholder='Title')
+			textarea(name='content')
+			button(type='submit') Create
