@@ -2,6 +2,8 @@
 
 import lighttp.util : Status, ServerRequest, ServerResponse;
 
+import scorpion.context : Context;
+
 /**
  * Attribute for controllers.
  * Example:
@@ -182,8 +184,8 @@ enum Body;
  */
 struct Async {
 
-	bool test(ServerRequest request, ServerResponse response) {
-		response.ready = false;
+	bool test(Context context) {
+		context.response.ready = false;
 		return true;
 	}
 

@@ -13,6 +13,7 @@ import lighttp.util : StatusCodes, ServerRequest, ServerResponse;
 
 import scorpion.component : Component, Init, Value;
 import scorpion.config : Config, Configuration, LanguageConfiguration, ProfilesConfiguration;
+import scorpion.context : Context;
 import scorpion.controller : Controller, Route, Path, Param, Body;
 import scorpion.entity : Entity, ExtendEntity;
 import scorpion.lang : LanguageManager;
@@ -48,7 +49,7 @@ private class Info {
 
 private interface EntityInfo {
 
-	void init(Config config, Database database);
+	void init(Context context, Database database);
 
 }
 
@@ -58,8 +59,8 @@ private class EntityInfoImpl(T) : Info, EntityInfo {
 		super(profiles);
 	}
 
-	override void init(Config config, Database database) {
-		if(profiles.length == 0 || config.hasProfile(profiles)) {
+	override void init(Context context, Database database) {
+		if(profiles.length == 0 || context.config.hasProfile(profiles)) {
 			enforce!Exception(database !is null, "A database connection is required");
 			database.init!T();
 		}
@@ -114,7 +115,7 @@ private class ServiceInfoImpl(T) : ServiceInfo {
 
 private interface ControllerInfo {
 
-	void init(Router router, Config config, Database);
+	void init(Router router, Context context, Database);
 
 }
 
@@ -124,8 +125,8 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 		super(profiles);
 	}
 
-	override void init(Router router, Config config, Database database) {
-		if(profiles.length == 0 || config.hasProfile(profiles)) {
+	override void init(Router router, Context context, Database database) {
+		if(profiles.length == 0 || context.config.hasProfile(profiles)) {
 			T controller = new T();
 			static if(!__traits(compiles, getUDAs!(T, Controller)[0]())) enum controllerPath = getUDAs!(T, Controller)[0].path;
 			foreach(immutable member ; __traits(allMembers, T)) {
@@ -154,6 +155,10 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 							} else {
 								static assert(is(typeof(F) : Resource), "Member annotated with @Route must be an instance of Resource");
 								auto fun = delegate(ServerRequest request, ServerResponse response){
+									context.refresh(request, response);
+									static foreach(test ; tests) {
+										if(!mixin(test).test(context)) return;
+									}
 									response.headers["X-Scorpion-Controller"] = T.stringof ~ "." ~ member;
 									response.headers["X-Scorpion-Path"] = regexPath;
 									mixin(full).apply(request, response);
@@ -167,7 +172,7 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 						initComponent(mixin(full), database);
 					}
 					static if(hasUDA!(F, Value)) {
-						mixin(full) = config.get(getUDAs!(F, Value)[0].key, mixin(full));
+						mixin(full) = context.config.get(getUDAs!(F, Value)[0].key, mixin(full));
 					}
 				}
 			}
@@ -178,12 +183,12 @@ private class ControllerInfoImpl(T) : Info, ControllerInfo {
 
 private string generateFunction(alias M)(string controller, string member, string path, string[] tests) {
 	string[] ret = ["ServerRequest request", "ServerResponse response"];
-	string body1 = "response.headers[`X-Scorpion-Controller`]=`" ~ controller ~ "." ~ member ~ "`;response.headers[`X-Scorpion-Path`]=`" ~ path ~ "`;";
+	string body1 = "context.refresh(request,response);response.headers[`X-Scorpion-Controller`]=`" ~ controller ~ "." ~ member ~ "`;response.headers[`X-Scorpion-Path`]=`" ~ path ~ "`;";
 	string body2, body3;
 	string[Parameters!M.length] call;
 	bool validation = false;
 	foreach(test ; tests) {
-		body1 ~= "if(!" ~ test ~ ".test(request,response)){return;}";
+		body1 ~= "if(!" ~ test ~ ".test(context)){return;}";
 	}
 	body1 ~= "response.status=StatusCodes.ok;Validation validation=new Validation();";
 	foreach(i, param; Parameters!M) {
@@ -236,15 +241,16 @@ private void initComponent(T)(ref T value, Database database) {
 }
 
 void init(Router router, Config config, Database database) {
+	Context context = new Context(config);
 	foreach(profilesConfiguration ; profilesConfigurations) {
 		config.addProfiles(profilesConfiguration.defaultProfiles());
 	}
 	info("Active profiles: ", config.profiles.join(", "));
 	foreach(entityInfo ; entities) {
-		entityInfo.init(config, database);
+		entityInfo.init(context, database);
 	}
 	foreach(controllerInfo ; controllers) {
-		controllerInfo.init(router, config, database);
+		controllerInfo.init(router, context, database);
 	}
 }
 

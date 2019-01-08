@@ -10,7 +10,7 @@ public import scorpion.profile : Profile;
 public import scorpion.repository : Repository, Select, Insert, Update, Remove, Where, OrderBy, Limit, Fields;
 public import scorpion.session : Session, Authentication, Auth, AuthRedirect;
 public import scorpion.validation : CustomValidation, NotEmpty, Min, Max, NotZero, Regex, Email, Optional, Validation;
-public import scorpion.view : View, compile, render;
+public import scorpion.view : View, render;
 
 public import shark.entity : Bool, Byte, Short, Integer, Long, Float, Double, Char, String, Binary, Clob, Blob, Date, DateTime, Time;
 public import shark.entity : Name, PrimaryKey, AutoIncrement, NotNull, Unique, Length;

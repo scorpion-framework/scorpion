@@ -24,7 +24,7 @@ class ScorpionWelcomeController {
 	
 	@Get
 	getIndex(Response response, View view) {
-		view.compile!("scorpion-welcome.index.dt", example);
+		view.render!("scorpion-welcome.index.dt", example);
 	}
 	
 	@Get("number", "([0-9]*)")

@@ -6,9 +6,26 @@ import std.uuid : UUID, randomUUID, parseUUID, UUIDParsingException;
 
 import lighttp : ServerRequest, ServerResponse, StatusCodes, Cookie;
 
+import scorpion.context : Context;
+
 private enum cookieName = "__scorpion_session_id";
 
 private Session[UUID] _sessions;
+
+class SessionManager {
+
+	private Session[UUID] _sessions;
+
+	public Session get(ServerRequest request) {
+		if(auto cookie = cookieName in request.cookies) {
+			try {
+				if(auto ret = parseUUID(idup(*cookie)) in _sessions) return *ret;
+			} catch(UUIDParsingException) {}
+		}
+		return new Session();
+	}
+
+}
 
 class Session {
 
@@ -66,15 +83,15 @@ struct Auth {
 
 	string[] roles;
 
-	bool test(ServerRequest request, ServerResponse response) {
-		Session session = Session.get(request);
+	bool test(Context context) {
+		Session session = context.session;
 		if(session.loggedIn) {
 			if(roles.length == 0) return true;
 			else foreach(role ; roles) {
 				if(session.authentication.roles.canFind(role)) return true;
 			}
 		}
-		response.status = StatusCodes.unauthorized;
+		context.response.status = StatusCodes.unauthorized;
 		return false;
 	}
 
@@ -90,9 +107,9 @@ struct AuthRedirect {
 		_auth = Auth(roles);
 	}
 
-	bool test(ServerRequest request, ServerResponse response) {
-		if(!_auth.test(request, response)) {
-			response.redirect(StatusCodes.temporaryRedirect, location);
+	bool test(Context context) {
+		if(!_auth.test(context)) {
+			context.response.redirect(StatusCodes.temporaryRedirect, location);
 			return false;
 		} else {
 			return true;
