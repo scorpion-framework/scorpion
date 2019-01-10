@@ -45,8 +45,10 @@ Also, note that scoprion-boot does not work with [single-file packages](https://
 
 ## Learn the basics
 
-- [Configuration](docs/configuration.md)
-- [Controllers](docs/controller.md)
+- [Configuration](https://github.com/scorpion-framework/scorpion/wiki/Configuration)
+- [Profiles](https://github.com/scorpion-framework/scorpion/wiki/Profiles)
+- [Controllers](https://github.com/scorpion-framework/scorpion/wiki/Controller)
+- [Request & Response](https://github.com/scorpion-framework/scorpion/wiki/Request-&-Response)
 
 ## In depth
 
