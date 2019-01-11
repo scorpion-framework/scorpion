@@ -221,7 +221,7 @@ enum ContentType {
 
 }
 
-T validateBody(T)(ServerRequest request, ServerResponse response, ref Validation validation) {
+T validateBody(T)(ServerRequest request, ServerResponse response, Validation validation) {
 	T ret;
 	static if(is(T == class)) ret = new T();
 	auto contentType = {

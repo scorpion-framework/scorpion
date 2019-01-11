@@ -1,0 +1,4 @@
+name "scorpion-javascript-to-d"
+targetType "library"
+dependency "scorpion" path="../.."
+dependency "scorpion-boot" version="~master"

@@ -27,11 +27,6 @@ class ScorpionWelcomeController {
 		view.render!("scorpion-welcome.index.dt", example);
 	}
 	
-	@Get("number", "([0-9]*)")
-	getNumber(Response response, @Path string number) {
-		response.body_ = number;
-	}
-	
 }
 
 @Controller("assets")
@@ -39,9 +34,13 @@ class ScorpionAssetsController {
 
 	@Get("scorpion.svg")
 	Resource logo;
+
+	@Get("scorpion.js")
+	Resource scorpionJs;
 	
 	this() {
 		logo = new CachedResource("image/svg+xml", import("scorpion.logo.svg"));
+		scorpionJs = new CachedResource("text/javascript", import("scorpion.js"));
 	}
 	
 }

@@ -5,7 +5,8 @@ import lighttp.util : Status, ServerRequest, ServerResponse;
 import scorpion.context : Context;
 
 /**
- * Attribute for controllers.
+ * Attribute for controllers to be used with classes that contain
+ * routes.
  * Example:
  * ---
  * @Controller
@@ -30,14 +31,27 @@ struct Controller {
  * Example:
  * ---
  * @Route("GET", false, "hello", "world") // GET /hello/world
- * @Post // POST /
- * @Delete("resource", "([a-z]+)") // DELETE /resource/:name
+ * @Post                                  // POST /
+ * @Delete("resource", "([a-z]+)")        // DELETE /resource/:name
  * ---
  */
 struct Route {
 
+	/**
+	 * Method accepted, conventionally uppercase.
+	 */
 	string method;
+
+	/**
+	 * Indicates whether the request can have a body. If set false
+	 * the body, if present, is always ignored.
+	 */
 	bool hasBody;
+
+	/**
+	 * Route's path. It is later glued used path separators by
+	 * the router manager.
+	 */
 	string[] path;
 
 	this(string method, bool hasBody, string[] path...) {
@@ -71,6 +85,49 @@ Route Patch(string[] path...) {
 /// ditto
 Route Delete(string[] path...) {
 	return Route("DELETE", true, path);
+}
+
+/**
+ * Callable functions are routes that can be called from javascipt
+ * using scorpion's javscript file (served to `/assets/scorpion.js`),
+ * calling the `scorpion.call` javscript function.
+ * The javascipt function takes a arguments the name of the function,
+ * an object with the function's parameter and a callback. Both the
+ * object and the callbacks are optional.
+ * Example:
+ * ---
+ * // D code
+ * @Callable
+ * uint randomInteger() {
+ *    return uniform!uint();
+ * }
+ * 
+ * // JS code
+ * scorpion.call("randomInteger", {}, number => console.log(number));
+ * ---
+ * Example:
+ * ---
+ * // D code
+ * @Callable
+ * void startProcess(string name) {
+ *    processFactory.start(name);
+ * }
+ * 
+ * // JS code
+ * scorpion.call("startProcess", {name: "my_process"});
+ * ---
+ * The `Callable` attribute, like other routes, can also be used with
+ * other custom attributes such as `Auth` and `AuthRedirect`.
+ */
+struct Callable {
+
+	/**
+	 * Optional name of the function. If not present it defaults
+	 * to the function's name the `Callable` attribute is associated
+	 * with.
+	 */
+	string functionName;
+
 }
 
 /**
@@ -134,7 +191,16 @@ enum Path;
  * }
  * ---
  */
-struct Param { string param; }
+struct Param {
+
+	/**
+	 * Indicates the name of the parameter. If not present defaults
+	 * to the identifier of the function's parameter that the `Param`
+	 * attribute is associated to.
+	 */
+	string param;
+
+}
 
 /**
  * Attribute that indicates that the parameter is converted from

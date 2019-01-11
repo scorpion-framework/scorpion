@@ -5,7 +5,10 @@ import std.exception : enforce;
 import std.experimental.logger : sharedLog, LogLevel, info;
 import std.regex : Regex;
 import std.string : split, join;
-import std.traits : hasUDA, getUDAs, isFunction, Parameters, ParameterIdentifierTuple;
+import std.traits : hasUDA, getUDAs, isFunction, Parameters, ParameterIdentifierTuple, ReturnType;
+import std.typecons : Tuple;
+
+import asdf : serializeToJson;
 
 import lighttp.resource : Resource;
 import lighttp.router : Router, routeInfo;
@@ -15,7 +18,7 @@ import lighttp.util : StatusCodes, ServerRequest, ServerResponse;
 import scorpion.component : Component, Init, Value;
 import scorpion.config : Config, Configuration, LanguageConfiguration, ProfilesConfiguration;
 import scorpion.context : Context;
-import scorpion.controller : Controller, Route, Path, Param, Body;
+import scorpion.controller : Controller, Route, Callable, Path, Param, Body;
 import scorpion.entity : Entity, ExtendEntity;
 import scorpion.lang : LanguageManager;
 import scorpion.profile : Profile;
@@ -58,12 +61,6 @@ final class ScorpionServer {
 	 * to build a new one.
 	 */
 	private ComponentInfo[] components;
-
-	/**
-	 * Contains informations about services and instructions on how 
-	 * to build a new one.
-	 */
-	private ServiceInfo[] services;
 
 	/**
 	 * Contains informations about controllers and a function to initialize
@@ -287,16 +284,16 @@ final class ScorpionServer {
 		override void init(Router router, Context context, Database database) {
 			T controller = new T();
 			static if(!__traits(compiles, getUDAs!(T, Controller)[0]())) enum controllerPath = getUDAs!(T, Controller)[0].path;
-			foreach(immutable member ; __traits(allMembers, T)) {
+			foreach(i, immutable member; __traits(allMembers, T)) {
 				static if(__traits(getProtection, __traits(getMember, T, member)) == "public") {
 					immutable full = "controller." ~ member;
 					alias F = __traits(getMember, T, member);
 					enum tests = {
 						string[] ret;
-						foreach(i, immutable uda; __traits(getAttributes, F)) {
+						foreach(j, immutable uda; __traits(getAttributes, F)) {
 							static if(is(typeof(__traits(getMember, uda, "test")) == function)) {
-								static if(__traits(compiles, uda())) ret ~= "__traits(getAttributes, F)[" ~ i.to!string ~ "].init";
-								else ret ~= "__traits(getAttributes, F)[" ~ i.to!string ~ "]";
+								static if(__traits(compiles, uda())) ret ~= "__traits(getAttributes, F)[" ~ j.to!string ~ "].init";
+								else ret ~= "__traits(getAttributes, F)[" ~ j.to!string ~ "]";
 							}
 						}
 						return ret;
@@ -311,7 +308,7 @@ final class ScorpionServer {
 							static if(isFunction!F) {
 								auto fun = mixin(generateFunction!F(T.stringof, member, regexPath, tests));
 							} else {
-								static assert(is(typeof(F) : Resource), "Member annotated with @Route must be callable or an instance of Resource");
+								static assert(is(typeof(F) : Resource), "Members annotated with @Route must be callable or an instance of Resource");
 								auto fun = delegate(ServerRequest request, ServerResponse response){
 									context.refresh(request, response);
 									static foreach(test ; tests) {
@@ -324,6 +321,34 @@ final class ScorpionServer {
 							}
 							router.add(routeInfo(uda.method, uda.hasBody, regexPath), fun);
 							info("Routing ", uda.method, " /", path.join("/"), " to ", T.stringof, ".", member, (isFunction!F ? "()" : ""));
+						} else static if(is(typeof(uda) == Callable) || is(typeof(uda()) == Callable)) {
+							static if(is(typeof(uda) == Callable)) enum path = ["internal", "function", uda.functionName];
+							else enum path = ["internal", "function", member];
+							mixin(generateStruct!(F, i));
+							auto fun = delegate(ServerRequest request, ServerResponse response){
+								context.refresh(request, response);
+								static foreach(test ; tests) {
+									if(!mixin(test).test(context)) return;
+								}
+								static if(Parameters!F.length) {
+									Validation validation = new Validation();
+									X members = validateBody!X(request, response, validation);
+									if(validation.valid) {
+										Parameters!F args;
+										foreach(j, immutable member; __traits(allMembers, X)) {
+											mixin("args[" ~ j.to!string ~ "]") = mixin("members." ~ member);
+										}
+										response.contentType = "application/json";
+										static if(is(ReturnType!F == void)) mixin(full)(args);
+										else response.body_ = serializeToJson(mixin(full)(args));
+									}
+								} else {
+									response.contentType = "application/json";
+									static if(is(ReturnType!F == void)) mixin(full)();
+									else response.body_ = serializeToJson(mixin(full)());
+								}
+							};
+							router.add(routeInfo("CALL", true, path.join(`\/`)), fun);
 						}
 					}
 					static if(hasUDA!(F, Init)) {
@@ -337,6 +362,16 @@ final class ScorpionServer {
 		}
 
 	}
+
+}
+
+private string generateStruct(alias F, size_t index)() {
+	string ret;
+	static foreach(i ; 0..Parameters!F.length) {
+		ret ~= "Parameters!F[" ~ i.to!string ~ "] ";
+		ret ~= ParameterIdentifierTuple!F[i] ~ ';';
+	}
+	return "struct X" ~ index.to!string ~ "{" ~ ret ~ "}alias X=X" ~ index.to!string ~ ";";
 
 }
 
@@ -357,8 +392,7 @@ private string generateFunction(alias M)(string controller, string member, strin
 			body2 ~= "View view=View(request,response,languageManager);";
 			call[i] = "view";
 		} else static if(is(param == Session)) {
-			body2 ~= "Session session=Session.get(request);";
-			call[i] = "session";
+			call[i] = "context.session";
 		} else static if(is(param == Validation)) {
 			call[i] = "validation";
 			validation = true;

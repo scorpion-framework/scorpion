@@ -1,7 +1,0 @@
-.dub
-.scorpion
-*.selections.json
-*.dll
-*.exe
-*.lib
-*.a

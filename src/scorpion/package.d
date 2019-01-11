@@ -4,7 +4,7 @@ public import lighttp : Request = ServerRequest, Response = ServerResponse, Stat
 
 public import scorpion.component : Component, Init, Value;
 public import scorpion.config : Configuration, LanguageConfiguration, ProfilesConfiguration;
-public import scorpion.controller : Controller, Get, Post, Put, Delete, Paths, Path, Param, Body, Async;
+public import scorpion.controller : Controller, Get, Post, Put, Delete, Callable, Paths, Path, Param, Body, Async;
 public import scorpion.entity : Entity;
 public import scorpion.profile : Profile;
 public import scorpion.repository : Repository, Select, Insert, Update, Remove, Where, OrderBy, Limit, Fields;
