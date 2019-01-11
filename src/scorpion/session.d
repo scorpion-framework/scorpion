@@ -8,13 +8,19 @@ import lighttp : ServerRequest, ServerResponse, StatusCodes, Cookie;
 
 import scorpion.context : Context;
 
-private enum cookieName = "__scorpion_session_id";
+final class SessionManager {
 
-private Session[UUID] _sessions;
-
-class SessionManager {
+	public immutable string cookieName;
 
 	private Session[UUID] _sessions;
+
+	public this(string cookieName) {
+		this.cookieName = cookieName;
+	}
+
+	public void add(Session session, UUID uuid) {
+		_sessions[uuid] = session;
+	}
 
 	public Session get(ServerRequest request) {
 		if(auto cookie = cookieName in request.cookies) {
@@ -22,23 +28,20 @@ class SessionManager {
 				if(auto ret = parseUUID(idup(*cookie)) in _sessions) return *ret;
 			} catch(UUIDParsingException) {}
 		}
-		return new Session();
+		return new Session(this);
 	}
 
 }
 
-class Session {
+final class Session {
 
-	public static Session get(ServerRequest request) {
-		if(auto cookie = cookieName in request.cookies) {
-			try {
-				if(auto ret = parseUUID(idup(*cookie)) in _sessions) return *ret;
-			} catch(UUIDParsingException) {}
-		}
-		return new Session();
-	}
+	private SessionManager _sessionManager;
 
 	private Authentication _authentication;
+
+	public this(SessionManager sessionManager) {
+		_sessionManager = sessionManager;
+	}
 
 	public @property bool loggedIn() {
 		return _authentication !is null;
@@ -50,12 +53,12 @@ class Session {
 
 	public void login(ServerResponse response, Authentication authentication) {
 		UUID uuid = randomUUID();
-		Cookie cookie = Cookie(cookieName, uuid.toString());
+		Cookie cookie = Cookie(_sessionManager.cookieName, uuid.toString());
 		cookie.maxAge = 3600; // 1 hour
 		cookie.path = "/";
 		cookie.httpOnly = true;
 		response.add(cookie);
-		_sessions[uuid] = this;
+		_sessionManager.add(this, uuid);
 		_authentication = authentication;
 	}
 

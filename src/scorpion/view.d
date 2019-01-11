@@ -44,8 +44,6 @@ struct View {
 
 }
 
-deprecated("use render instead") alias compile = render;
-
 void render(string file, E...)(View view) {
 	view.response.body_ = renderImpl!(file, E)(view);
 }
